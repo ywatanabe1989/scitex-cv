@@ -1,5 +1,16 @@
 # scitex-cv
 
+<!-- scitex-badges:start -->
+[![PyPI](https://img.shields.io/pypi/v/scitex-cv.svg)](https://pypi.org/project/scitex-cv/)
+[![Python](https://img.shields.io/pypi/pyversions/scitex-cv.svg)](https://pypi.org/project/scitex-cv/)
+[![Tests](https://github.com/ywatanabe1989/scitex-cv/actions/workflows/test.yml/badge.svg)](https://github.com/ywatanabe1989/scitex-cv/actions/workflows/test.yml)
+[![Install Test](https://github.com/ywatanabe1989/scitex-cv/actions/workflows/install-test.yml/badge.svg)](https://github.com/ywatanabe1989/scitex-cv/actions/workflows/install-test.yml)
+[![Coverage](https://codecov.io/gh/ywatanabe1989/scitex-cv/graph/badge.svg)](https://codecov.io/gh/ywatanabe1989/scitex-cv)
+[![Docs](https://readthedocs.org/projects/scitex-cv/badge/?version=latest)](https://scitex-cv.readthedocs.io/en/latest/)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+<!-- scitex-badges:end -->
+
+
 Small cv2/Pillow image-processing utilities, extracted from the [SciTeX](https://github.com/ywatanabe1989/scitex-python) ecosystem as a standalone package.
 
 ## Install
