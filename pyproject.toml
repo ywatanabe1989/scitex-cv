@@ -25,7 +25,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "ruff"]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+]
 docs = [
     "sphinx>=7.0",
     "sphinx-rtd-theme>=2.0",
@@ -33,7 +37,9 @@ docs = [
     "sphinx-copybutton>=0.5",
     "sphinx-autodoc-typehints>=1.25",
 ]
-all = ["scitex-cv[dev]", "scitex-cv[docs]"]
+all = [
+    "scitex-cv[dev,docs]",
+]
 
 [project.urls]
 Homepage = "https://github.com/ywatanabe1989/scitex-cv"
