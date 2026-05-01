@@ -44,7 +44,7 @@ cv.save(edges, "edges.png")
 
 ## 1 Interfaces
 
-<details>
+<details open>
 <summary><strong>Python API</strong></summary>
 
 <br>
