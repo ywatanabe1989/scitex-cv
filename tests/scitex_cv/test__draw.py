@@ -1,252 +1,80 @@
-# Add your tests here
+#!/usr/bin/env python3
+"""Tests for scitex_cv._draw primitives (rectangle, circle, line, text, polylines, arrow)."""
+
+import numpy as np
+import pytest
+
+from scitex_cv._draw import arrow, circle, line, polylines, rectangle, text
+
+
+@pytest.fixture
+def canvas():
+    return np.zeros((100, 100, 3), dtype=np.uint8)
+
+
+def _has_nonzero(img):
+    return img.any()
+
+
+class TestRectangle:
+    def test_outlined_draws_pixels(self, canvas):
+        out = rectangle(canvas, (10, 10), (50, 50), color=(0, 255, 0))
+        assert _has_nonzero(out)
+        assert out[10, 10, 1] == 255
+
+    def test_filled_fills_interior(self, canvas):
+        out = rectangle(canvas, (10, 10), (50, 50), color=(0, 0, 255), filled=True)
+        assert tuple(out[30, 30]) == (0, 0, 255)
+
+    def test_returns_same_array(self, canvas):
+        out = rectangle(canvas, (0, 0), (10, 10))
+        assert out is canvas
+
+
+class TestCircle:
+    def test_outlined_draws_perimeter(self, canvas):
+        out = circle(canvas, (50, 50), radius=20, color=(255, 0, 0))
+        assert _has_nonzero(out)
+
+    def test_filled_fills_disc(self, canvas):
+        out = circle(canvas, (50, 50), radius=20, filled=True, color=(0, 0, 255))
+        assert tuple(out[50, 50]) == (0, 0, 255)
+
+
+class TestLine:
+    def test_diagonal_line(self, canvas):
+        out = line(canvas, (0, 0), (99, 99), color=(0, 255, 0), thickness=1)
+        diag = np.array([out[i, i] for i in range(100)])
+        assert diag.any()
+
+
+class TestText:
+    def test_writes_some_pixels(self, canvas):
+        out = text(canvas, "Hi", (10, 50), color=(255, 255, 255))
+        assert _has_nonzero(out)
+
+
+class TestPolylines:
+    def test_open_polyline(self, canvas):
+        pts = np.array([[10, 10], [50, 10], [50, 50]], dtype=np.int32)
+        out = polylines(canvas, pts, color=(0, 255, 0), closed=False)
+        assert _has_nonzero(out)
+
+    def test_closed_polygon(self, canvas):
+        pts = np.array([[10, 10], [50, 10], [50, 50]], dtype=np.int32)
+        out = polylines(canvas, pts, color=(0, 255, 0), closed=True)
+        assert _has_nonzero(out)
+
+
+class TestArrow:
+    def test_arrow_draws_pixels(self, canvas):
+        out = arrow(canvas, (10, 10), (80, 80), color=(255, 0, 0))
+        assert _has_nonzero(out)
+
 
 if __name__ == "__main__":
     import os
 
-    import pytest
+    pytest.main([os.path.abspath(__file__), "-v"])
 
-    pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/cv/_draw.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # Timestamp: 2026-01-08
-# # File: src/scitex/cv/_draw.py
-# """Drawing utilities using cv2."""
-#
-# from __future__ import annotations
-#
-# from typing import Tuple
-#
-# import cv2
-# import numpy as np
-#
-#
-# def rectangle(
-#     img: np.ndarray,
-#     pt1: Tuple[int, int],
-#     pt2: Tuple[int, int],
-#     color: Tuple[int, int, int] = (0, 255, 0),
-#     thickness: int = 2,
-#     filled: bool = False,
-# ) -> np.ndarray:
-#     """Draw a rectangle on an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image (modified in place).
-#     pt1 : tuple
-#         Top-left corner (x, y).
-#     pt2 : tuple
-#         Bottom-right corner (x, y).
-#     color : tuple
-#         BGR color.
-#     thickness : int
-#         Line thickness (-1 for filled).
-#     filled : bool
-#         If True, fill the rectangle.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Image with rectangle.
-#     """
-#     t = -1 if filled else thickness
-#     cv2.rectangle(img, pt1, pt2, color, t)
-#     return img
-#
-#
-# def circle(
-#     img: np.ndarray,
-#     center: Tuple[int, int],
-#     radius: int,
-#     color: Tuple[int, int, int] = (0, 255, 0),
-#     thickness: int = 2,
-#     filled: bool = False,
-# ) -> np.ndarray:
-#     """Draw a circle on an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image (modified in place).
-#     center : tuple
-#         Center coordinates (x, y).
-#     radius : int
-#         Circle radius.
-#     color : tuple
-#         BGR color.
-#     thickness : int
-#         Line thickness.
-#     filled : bool
-#         If True, fill the circle.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Image with circle.
-#     """
-#     t = -1 if filled else thickness
-#     cv2.circle(img, center, radius, color, t)
-#     return img
-#
-#
-# def line(
-#     img: np.ndarray,
-#     pt1: Tuple[int, int],
-#     pt2: Tuple[int, int],
-#     color: Tuple[int, int, int] = (0, 255, 0),
-#     thickness: int = 2,
-# ) -> np.ndarray:
-#     """Draw a line on an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image (modified in place).
-#     pt1 : tuple
-#         Start point (x, y).
-#     pt2 : tuple
-#         End point (x, y).
-#     color : tuple
-#         BGR color.
-#     thickness : int
-#         Line thickness.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Image with line.
-#     """
-#     cv2.line(img, pt1, pt2, color, thickness)
-#     return img
-#
-#
-# def text(
-#     img: np.ndarray,
-#     text: str,
-#     position: Tuple[int, int],
-#     color: Tuple[int, int, int] = (255, 255, 255),
-#     scale: float = 1.0,
-#     thickness: int = 2,
-#     font: str = "simplex",
-# ) -> np.ndarray:
-#     """Draw text on an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image (modified in place).
-#     text : str
-#         Text to draw.
-#     position : tuple
-#         Bottom-left corner of text (x, y).
-#     color : tuple
-#         BGR color.
-#     scale : float
-#         Font scale.
-#     thickness : int
-#         Text thickness.
-#     font : str
-#         Font type: 'simplex', 'plain', 'duplex', 'complex', 'triplex'.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Image with text.
-#     """
-#     font_map = {
-#         "simplex": cv2.FONT_HERSHEY_SIMPLEX,
-#         "plain": cv2.FONT_HERSHEY_PLAIN,
-#         "duplex": cv2.FONT_HERSHEY_DUPLEX,
-#         "complex": cv2.FONT_HERSHEY_COMPLEX,
-#         "triplex": cv2.FONT_HERSHEY_TRIPLEX,
-#     }
-#     font_face = font_map.get(font, cv2.FONT_HERSHEY_SIMPLEX)
-#     cv2.putText(img, text, position, font_face, scale, color, thickness)
-#     return img
-#
-#
-# def polylines(
-#     img: np.ndarray,
-#     points: np.ndarray,
-#     closed: bool = True,
-#     color: Tuple[int, int, int] = (0, 255, 0),
-#     thickness: int = 2,
-# ) -> np.ndarray:
-#     """Draw polylines on an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image (modified in place).
-#     points : np.ndarray
-#         Array of points with shape (N, 1, 2) or (N, 2).
-#     closed : bool
-#         Whether to close the polyline.
-#     color : tuple
-#         BGR color.
-#     thickness : int
-#         Line thickness.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Image with polylines.
-#     """
-#     if len(points.shape) == 2:
-#         points = points.reshape((-1, 1, 2))
-#     cv2.polylines(img, [points.astype(np.int32)], closed, color, thickness)
-#     return img
-#
-#
-# def arrow(
-#     img: np.ndarray,
-#     pt1: Tuple[int, int],
-#     pt2: Tuple[int, int],
-#     color: Tuple[int, int, int] = (0, 255, 0),
-#     thickness: int = 2,
-#     tip_length: float = 0.1,
-# ) -> np.ndarray:
-#     """Draw an arrowed line on an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image (modified in place).
-#     pt1 : tuple
-#         Start point (x, y).
-#     pt2 : tuple
-#         End point (arrow tip) (x, y).
-#     color : tuple
-#         BGR color.
-#     thickness : int
-#         Line thickness.
-#     tip_length : float
-#         Arrow tip length as fraction of line length.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Image with arrow.
-#     """
-#     cv2.arrowedLine(img, pt1, pt2, color, thickness, tipLength=tip_length)
-#     return img
-#
-#
-# __all__ = [
-#     "rectangle",
-#     "circle",
-#     "line",
-#     "text",
-#     "polylines",
-#     "arrow",
-# ]
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/cv/_draw.py
-# --------------------------------------------------------------------------------
+# EOF

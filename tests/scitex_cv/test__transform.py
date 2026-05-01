@@ -1,200 +1,82 @@
-# Add your tests here
+#!/usr/bin/env python3
+"""Tests for scitex_cv._transform (resize, rotate, flip, crop, pad)."""
+
+import numpy as np
+import pytest
+
+from scitex_cv._transform import crop, flip, pad, resize, rotate
+
+
+@pytest.fixture
+def img():
+    arr = np.zeros((60, 100, 3), dtype=np.uint8)
+    arr[10:20, 10:20] = (255, 0, 0)
+    return arr
+
+
+class TestResize:
+    def test_resize_to_explicit_size(self, img):
+        out = resize(img, size=(50, 30))
+        assert out.shape == (30, 50, 3)
+
+    def test_resize_by_scale(self, img):
+        out = resize(img, scale=0.5)
+        assert out.shape == (30, 50, 3)
+
+    def test_requires_size_or_scale(self, img):
+        with pytest.raises(ValueError, match="size or scale"):
+            resize(img)
+
+
+class TestRotate:
+    def test_180_rotation_preserves_shape(self, img):
+        out = rotate(img, angle=180)
+        assert out.shape == img.shape
+
+    def test_zero_rotation_returns_equivalent_image(self, img):
+        out = rotate(img, angle=0)
+        np.testing.assert_array_equal(out, img)
+
+
+class TestFlip:
+    def test_horizontal_flip(self, img):
+        out = flip(img, "horizontal")
+        np.testing.assert_array_equal(out, img[:, ::-1])
+
+    def test_vertical_flip(self, img):
+        out = flip(img, "vertical")
+        np.testing.assert_array_equal(out, img[::-1])
+
+    def test_both_flip(self, img):
+        out = flip(img, "both")
+        np.testing.assert_array_equal(out, img[::-1, ::-1])
+
+
+class TestCrop:
+    def test_crop_returns_correct_region(self, img):
+        out = crop(img, x=10, y=10, width=10, height=10)
+        assert out.shape == (10, 10, 3)
+        assert (out == (255, 0, 0)).all()
+
+    def test_crop_returns_copy(self, img):
+        out = crop(img, x=0, y=0, width=5, height=5)
+        out[0, 0] = (1, 2, 3)
+        assert tuple(img[0, 0]) == (0, 0, 0)
+
+
+class TestPad:
+    def test_pad_increases_dimensions(self, img):
+        out = pad(img, top=5, bottom=5, left=10, right=10)
+        assert out.shape == (60 + 10, 100 + 20, 3)
+
+    def test_pad_default_color_is_zero(self, img):
+        out = pad(img, top=2, color=0)
+        assert (out[0:2] == 0).all()
+
 
 if __name__ == "__main__":
     import os
 
-    import pytest
+    pytest.main([os.path.abspath(__file__), "-v"])
 
-    pytest.main([os.path.abspath(__file__)])
-
-# --------------------------------------------------------------------------------
-# Start of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/cv/_transform.py
-# --------------------------------------------------------------------------------
-# #!/usr/bin/env python3
-# # Timestamp: 2026-01-08
-# # File: src/scitex/cv/_transform.py
-# """Image transformation utilities using cv2."""
-#
-# from __future__ import annotations
-#
-# from typing import Optional, Tuple, Union
-#
-# import cv2
-# import numpy as np
-#
-#
-# def resize(
-#     img: np.ndarray,
-#     size: Optional[Tuple[int, int]] = None,
-#     scale: Optional[float] = None,
-#     interpolation: str = "linear",
-# ) -> np.ndarray:
-#     """Resize an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image.
-#     size : tuple of int, optional
-#         Target size as (width, height).
-#     scale : float, optional
-#         Scale factor (alternative to size).
-#     interpolation : str
-#         Interpolation method: 'nearest', 'linear', 'cubic', 'area', 'lanczos'.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Resized image.
-#     """
-#     interp_map = {
-#         "nearest": cv2.INTER_NEAREST,
-#         "linear": cv2.INTER_LINEAR,
-#         "cubic": cv2.INTER_CUBIC,
-#         "area": cv2.INTER_AREA,
-#         "lanczos": cv2.INTER_LANCZOS4,
-#     }
-#     interp = interp_map.get(interpolation, cv2.INTER_LINEAR)
-#
-#     if scale is not None:
-#         return cv2.resize(img, None, fx=scale, fy=scale, interpolation=interp)
-#     elif size is not None:
-#         return cv2.resize(img, size, interpolation=interp)
-#     else:
-#         raise ValueError("Either size or scale must be provided")
-#
-#
-# def rotate(
-#     img: np.ndarray,
-#     angle: float,
-#     center: Optional[Tuple[int, int]] = None,
-#     scale: float = 1.0,
-# ) -> np.ndarray:
-#     """Rotate an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image.
-#     angle : float
-#         Rotation angle in degrees (counter-clockwise).
-#     center : tuple of int, optional
-#         Rotation center. Defaults to image center.
-#     scale : float
-#         Scale factor.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Rotated image.
-#     """
-#     h, w = img.shape[:2]
-#     if center is None:
-#         center = (w // 2, h // 2)
-#
-#     matrix = cv2.getRotationMatrix2D(center, angle, scale)
-#     return cv2.warpAffine(img, matrix, (w, h))
-#
-#
-# def flip(
-#     img: np.ndarray,
-#     direction: str = "horizontal",
-# ) -> np.ndarray:
-#     """Flip an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image.
-#     direction : str
-#         Flip direction: 'horizontal', 'vertical', or 'both'.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Flipped image.
-#     """
-#     flip_map = {
-#         "horizontal": 1,
-#         "vertical": 0,
-#         "both": -1,
-#     }
-#     code = flip_map.get(direction, 1)
-#     return cv2.flip(img, code)
-#
-#
-# def crop(
-#     img: np.ndarray,
-#     x: int,
-#     y: int,
-#     width: int,
-#     height: int,
-# ) -> np.ndarray:
-#     """Crop a region from an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image.
-#     x, y : int
-#         Top-left corner coordinates.
-#     width, height : int
-#         Crop dimensions.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Cropped image.
-#     """
-#     return img[y : y + height, x : x + width].copy()
-#
-#
-# def pad(
-#     img: np.ndarray,
-#     top: int = 0,
-#     bottom: int = 0,
-#     left: int = 0,
-#     right: int = 0,
-#     color: Union[int, Tuple[int, ...]] = 0,
-#     mode: str = "constant",
-# ) -> np.ndarray:
-#     """Pad an image.
-#
-#     Parameters
-#     ----------
-#     img : np.ndarray
-#         Input image.
-#     top, bottom, left, right : int
-#         Padding sizes.
-#     color : int or tuple
-#         Padding color for constant mode.
-#     mode : str
-#         Padding mode: 'constant', 'reflect', 'replicate'.
-#
-#     Returns
-#     -------
-#     np.ndarray
-#         Padded image.
-#     """
-#     mode_map = {
-#         "constant": cv2.BORDER_CONSTANT,
-#         "reflect": cv2.BORDER_REFLECT,
-#         "replicate": cv2.BORDER_REPLICATE,
-#     }
-#     border_type = mode_map.get(mode, cv2.BORDER_CONSTANT)
-#     return cv2.copyMakeBorder(img, top, bottom, left, right, border_type, value=color)
-#
-#
-# __all__ = [
-#     "resize",
-#     "rotate",
-#     "flip",
-#     "crop",
-#     "pad",
-# ]
-#
-# # EOF
-
-# --------------------------------------------------------------------------------
-# End of Source Code from: /home/ywatanabe/proj/scitex-code/src/scitex/cv/_transform.py
-# --------------------------------------------------------------------------------
+# EOF
