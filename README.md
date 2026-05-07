@@ -32,6 +32,20 @@
 pip install scitex-cv
 ```
 
+## Architecture
+
+```
+scitex_cv/
+├── __init__.py        ← public API (load, save, resize, blur, edge_detect, ...)
+├── _io.py             ← image I/O wrappers (PIL / OpenCV backends)
+├── _transform.py      ← geometric transforms (resize, crop, rotate)
+├── _filters.py        ← blur, sharpen, edge-detect filters
+└── _draw.py           ← annotation helpers (draw boxes, text, masks)
+```
+
+Thin, opinionated wrapper around PIL + OpenCV — every public name in
+`__init__.py` re-exports from one of the four leaf modules above.
+
 ## Quick Start
 
 ```python
@@ -81,6 +95,18 @@ cv.polylines(img, points=np.array([[0, 0], [100, 0], [100, 100]]))
 ```
 
 </details>
+
+## Demo
+
+```mermaid
+flowchart LR
+    F["input.png"] --> L["cv.load()"]
+    L --> R["cv.resize(scale=0.5)"]
+    R --> B["cv.blur(ksize=5)"]
+    B --> E["cv.edge_detect(method='canny')"]
+    E --> S["cv.save('edges.png')"]
+    S --> O["edges.png"]
+```
 
 ## Status
 
