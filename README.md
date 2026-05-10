@@ -9,7 +9,7 @@
 <p align="center"><b>Small cv2-based image utilities — I/O, transform, filters, drawing.</b></p>
 
 <p align="center">
-  <a href="https://scitex-cv.readthedocs.io/">Full Documentation</a> · <code>pip install scitex-cv</code>
+  <a href="https://scitex-cv.readthedocs.io/">Full Documentation</a> · <code>uv pip install scitex-cv[all]</code>
 </p>
 
 <!-- scitex-badges:start -->
