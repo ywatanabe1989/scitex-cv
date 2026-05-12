@@ -44,3 +44,22 @@ jobs:
           files: coverage.xml
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  install-check:
+    # Catches undeclared runtime deps that the package's own test suite
+    # misses. A package can build, upload, and pass its own tests with the
+    # wrong pyproject.toml — the bug only shows up when a fresh user runs
+    # `pip install <pkg>` in a clean venv. This job reproduces that path.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install in fresh venv and import
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -e .
+          IMPORT_NAME=$(find src -maxdepth 2 -name __init__.py -printf '%h\n' | head -1 | xargs -n1 basename)
+          .venv/bin/python -c "import ${IMPORT_NAME}; print(f'OK: {${IMPORT_NAME}.__name__}')"

@@ -8,13 +8,22 @@ dist/
 .pytest_cache/
 .ruff_cache/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
 .mypy_cache/
 .python-version
 .venv/
 venv/
+.claude/
 docs/sphinx/_build/
 docs/sphinx/api/
 *.swp
 .DS_Store
+
+# Local SciTeX dev state — keep the per-project config tracked,
+# ignore everything else (runtime/, caches, etc.).
+.scitex/*
+!.scitex/dev/
+.scitex/dev/*
+!.scitex/dev/config.yaml

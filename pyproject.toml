@@ -28,8 +28,11 @@ dependencies = [
 dev = [
     "pytest",
     "pytest-cov",
+    "pytest-timeout",        # tests/.github workflow uses --timeout=120
+    "coverage>=7.0",         # subprocess coverage wiring
     "ruff",
-    "scitex-dev>=0.11.7",
+    "scitex-dev[cli-audit]>=0.11.7",  # tests/develop/test_audit.py
+    "matplotlib",            # tests/scitex_cv/_dev/test__compose.py + src/scitex_cv/_dev/_title_card.py
 ]
 docs = [
     "sphinx>=7.0",
@@ -59,6 +62,11 @@ scitex-cv = "scitex_cv"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--disable-warnings"]
+
+[tool.coverage.run]
+parallel = true
+source = ["scitex_cv"]
+concurrency = ["multiprocessing", "thread"]
 
 [tool.ruff]
 target-version = "py39"

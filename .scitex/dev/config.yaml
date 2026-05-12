@@ -1,0 +1,11 @@
+# Per-project SciTeX dev config (audit overrides, etc.).
+# See _skills/general/01_ecosystem_06_local-state-directories.md and
+# _skills/general/02_package_01_project-structure-root.md for spec.
+
+audit:
+  root-whitelist:
+    files:
+      # Codecov config — playbook §7 requires a top-level codecov.yml,
+      # but the strict PS-103 baseline doesn't include it. Whitelist
+      # here rather than relocating.
+      - codecov.yml
