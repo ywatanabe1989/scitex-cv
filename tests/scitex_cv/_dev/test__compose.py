@@ -14,11 +14,21 @@ pytest.importorskip("matplotlib")
 import scitex_cv._dev as cv_mod  # noqa: E402
 
 
-def test_cv_module_loads():
-    assert hasattr(cv_mod, "compose")
+def test_cv_dev_module_exposes_compose_attribute():
+    # Arrange
+    module = cv_mod
+    # Act
+    has_compose = hasattr(module, "compose")
+    # Assert
+    assert has_compose
 
 
-def test_cv_title_card_importable():
-    from scitex_cv._dev import _title_card
+def test_cv_dev_title_card_submodule_is_importable():
+    # Arrange
+    import importlib
 
-    assert _title_card is not None
+    target_name = "scitex_cv._dev._title_card"
+    # Act
+    submodule = importlib.import_module(target_name)
+    # Assert
+    assert submodule is not None

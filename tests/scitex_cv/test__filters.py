@@ -21,53 +21,104 @@ def bgr_img():
 
 
 class TestBlur:
-    def test_gaussian_preserves_shape(self, bgr_img):
-        out = blur(bgr_img, ksize=5, method="gaussian")
-        assert out.shape == bgr_img.shape
+    def test_gaussian_blur_preserves_image_shape(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = blur(source, ksize=5, method="gaussian")
+        # Assert
+        assert out.shape == source.shape
 
-    def test_even_kernel_size_is_normalized(self, bgr_img):
-        out = blur(bgr_img, ksize=4, method="gaussian")
-        assert out.shape == bgr_img.shape
+    def test_even_kernel_size_is_normalized_internally(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = blur(source, ksize=4, method="gaussian")
+        # Assert
+        assert out.shape == source.shape
 
     @pytest.mark.parametrize("method", ["gaussian", "median", "box", "bilateral"])
-    def test_each_method_works(self, bgr_img, method):
-        out = blur(bgr_img, ksize=5, method=method)
-        assert out.shape == bgr_img.shape
+    def test_each_blur_method_preserves_shape(self, bgr_img, method):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = blur(source, ksize=5, method=method)
+        # Assert
+        assert out.shape == source.shape
 
-    def test_unknown_method_raises(self, bgr_img):
-        with pytest.raises(ValueError, match="Unknown blur"):
-            blur(bgr_img, method="nonsense")
+    def test_unknown_blur_method_raises_value_error(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        ctx = pytest.raises(ValueError, match="Unknown blur")
+        # Assert
+        with ctx:
+            blur(source, method="nonsense")
 
 
 class TestSharpen:
-    def test_preserves_shape(self, bgr_img):
-        out = sharpen(bgr_img)
-        assert out.shape == bgr_img.shape
+    def test_sharpen_preserves_image_shape(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = sharpen(source)
+        # Assert
+        assert out.shape == source.shape
 
-    def test_strength_argument_accepted(self, bgr_img):
-        sharpen(bgr_img, strength=1.0)
-        sharpen(bgr_img, strength=2.0)
+    @pytest.mark.parametrize("strength", [1.0, 2.0])
+    def test_sharpen_accepts_strength_argument_without_error(self, bgr_img, strength):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = sharpen(source, strength=strength)
+        # Assert
+        assert out is not None
 
 
 class TestEdgeDetect:
     @pytest.mark.parametrize("method", ["canny", "sobel", "laplacian"])
-    def test_each_method_returns_2d(self, bgr_img, method):
-        out = edge_detect(bgr_img, method=method)
+    def test_each_edge_method_returns_two_dimensional_array(self, bgr_img, method):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = edge_detect(source, method=method)
+        # Assert
         assert out.ndim == 2
-        assert out.shape == bgr_img.shape[:2]
 
-    def test_works_on_grayscale_input(self, gray_img):
-        out = edge_detect(gray_img, method="canny")
+    @pytest.mark.parametrize("method", ["canny", "sobel", "laplacian"])
+    def test_each_edge_method_preserves_height_and_width(self, bgr_img, method):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = edge_detect(source, method=method)
+        # Assert
+        assert out.shape == source.shape[:2]
+
+    def test_edge_detect_canny_works_on_grayscale_input(self, gray_img):
+        # Arrange
+        source = gray_img
+        # Act
+        out = edge_detect(source, method="canny")
+        # Assert
         assert out.ndim == 2
 
-    def test_unknown_method_raises(self, bgr_img):
-        with pytest.raises(ValueError, match="Unknown edge"):
-            edge_detect(bgr_img, method="nonsense")
+    def test_unknown_edge_method_raises_value_error(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        ctx = pytest.raises(ValueError, match="Unknown edge")
+        # Assert
+        with ctx:
+            edge_detect(source, method="nonsense")
 
 
 class TestThreshold:
-    def test_binary_produces_only_two_values(self, gray_img):
-        out = threshold(gray_img, thresh=127, method="binary")
+    def test_binary_threshold_produces_only_zero_and_255_values(self, gray_img):
+        # Arrange
+        source = gray_img
+        # Act
+        out = threshold(source, thresh=127, method="binary")
+        # Assert
         unique = np.unique(out)
         assert set(unique) <= {0, 255}
 
@@ -84,31 +135,58 @@ class TestThreshold:
             "adaptive_gaussian",
         ],
     )
-    def test_each_method_returns_2d(self, gray_img, method):
-        out = threshold(gray_img, method=method)
+    def test_each_threshold_method_returns_two_dimensional_array(
+        self, gray_img, method
+    ):
+        # Arrange
+        source = gray_img
+        # Act
+        out = threshold(source, method=method)
+        # Assert
         assert out.ndim == 2
 
-    def test_works_on_color_input(self, bgr_img):
-        out = threshold(bgr_img, method="binary")
+    def test_threshold_works_on_color_input_returns_two_dim(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = threshold(source, method="binary")
+        # Assert
         assert out.ndim == 2
 
 
 class TestDenoise:
-    def test_fastNl_color_preserves_shape(self, bgr_img):
-        out = denoise(bgr_img, strength=5, method="fastNl")
-        assert out.shape == bgr_img.shape
+    def test_fastNl_denoise_on_color_preserves_shape(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = denoise(source, strength=5, method="fastNl")
+        # Assert
+        assert out.shape == source.shape
 
-    def test_fastNl_grayscale_preserves_shape(self, gray_img):
-        out = denoise(gray_img, strength=5, method="fastNl")
-        assert out.shape == gray_img.shape
+    def test_fastNl_denoise_on_grayscale_preserves_shape(self, gray_img):
+        # Arrange
+        source = gray_img
+        # Act
+        out = denoise(source, strength=5, method="fastNl")
+        # Assert
+        assert out.shape == source.shape
 
-    def test_bilateral_method(self, bgr_img):
-        out = denoise(bgr_img, strength=5, method="bilateral")
-        assert out.shape == bgr_img.shape
+    def test_bilateral_denoise_preserves_shape(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        out = denoise(source, strength=5, method="bilateral")
+        # Assert
+        assert out.shape == source.shape
 
-    def test_unknown_method_raises(self, bgr_img):
-        with pytest.raises(ValueError, match="Unknown denoise"):
-            denoise(bgr_img, method="nonsense")
+    def test_unknown_denoise_method_raises_value_error(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        ctx = pytest.raises(ValueError, match="Unknown denoise")
+        # Assert
+        with ctx:
+            denoise(source, method="nonsense")
 
 
 if __name__ == "__main__":

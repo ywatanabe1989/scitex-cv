@@ -9,7 +9,8 @@ import shutil
 import pytest
 
 
-def test_audit_all_clean():
+def _run_audit_all_for_scitex_cv():
+    """Helper that runs audit-all and returns True on success."""
     if shutil.which("scitex-dev") is None:
         pytest.skip(
             "scitex-dev not installed — add `scitex-dev[cli-audit]` "
@@ -17,4 +18,14 @@ def test_audit_all_clean():
         )
     from scitex_dev.testing import audit_all_for_package
 
-    audit_all_for_package('scitex-cv')
+    audit_all_for_package("scitex-cv")
+    return True
+
+
+def test_audit_all_runs_clean_for_scitex_cv():
+    # Arrange
+    target_package = "scitex-cv"
+    # Act
+    completed = _run_audit_all_for_scitex_cv()
+    # Assert
+    assert completed is True, f"audit-all failed for {target_package}"

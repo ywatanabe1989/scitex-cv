@@ -17,48 +17,90 @@ def bgr_img():
 
 
 class TestRoundTrip:
-    def test_save_then_load_recovers_image(self, bgr_img, tmp_path):
+    def test_save_returns_destination_path_unchanged(self, bgr_img, tmp_path):
+        # Arrange
         path = tmp_path / "out.png"
+        # Act
         result = save(bgr_img, path)
+        # Assert
         assert result == path
-        assert path.exists()
-        round_tripped = load(path)
-        np.testing.assert_array_equal(round_tripped, bgr_img)
 
-    def test_save_creates_parent_dirs(self, bgr_img, tmp_path):
-        path = tmp_path / "deep" / "nested" / "out.png"
+    def test_save_creates_file_at_destination(self, bgr_img, tmp_path):
+        # Arrange
+        path = tmp_path / "out.png"
+        # Act
         save(bgr_img, path)
+        # Assert
         assert path.exists()
 
-    def test_load_grayscale(self, bgr_img, tmp_path):
+    def test_save_then_load_recovers_image_bitwise(self, bgr_img, tmp_path):
+        # Arrange
         path = tmp_path / "out.png"
         save(bgr_img, path)
+        # Act
+        round_tripped = load(path)
+        # Assert
+        assert np.array_equal(round_tripped, bgr_img)
+
+    def test_save_creates_missing_parent_directories(self, bgr_img, tmp_path):
+        # Arrange
+        path = tmp_path / "deep" / "nested" / "out.png"
+        # Act
+        save(bgr_img, path)
+        # Assert
+        assert path.exists()
+
+    def test_load_with_color_false_returns_two_dim_array(self, bgr_img, tmp_path):
+        # Arrange
+        path = tmp_path / "out.png"
+        save(bgr_img, path)
+        # Act
         gray = load(path, color=False)
+        # Assert
         assert gray.ndim == 2
 
-    def test_load_missing_file_raises(self, tmp_path):
-        with pytest.raises(FileNotFoundError):
-            load(tmp_path / "nope.png")
+    def test_load_missing_file_raises_file_not_found_error(self, tmp_path):
+        # Arrange
+        missing_path = tmp_path / "nope.png"
+        # Act
+        ctx = pytest.raises(FileNotFoundError)
+        # Assert
+        with ctx:
+            load(missing_path)
 
 
 class TestColorConversions:
-    def test_to_rgb_swaps_b_and_r(self, bgr_img):
-        rgb = to_rgb(bgr_img)
+    def test_to_rgb_swaps_blue_and_red_channels(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        rgb = to_rgb(source)
+        # Assert
         assert tuple(rgb[0, 0]) == (50, 100, 200)
 
-    def test_to_bgr_round_trip(self, bgr_img):
+    def test_to_bgr_after_to_rgb_recovers_original_image(self, bgr_img):
+        # Arrange
         rgb = to_rgb(bgr_img)
+        # Act
         back = to_bgr(rgb)
-        np.testing.assert_array_equal(back, bgr_img)
+        # Assert
+        assert np.array_equal(back, bgr_img)
 
-    def test_to_gray_returns_2d(self, bgr_img):
-        gray = to_gray(bgr_img)
+    def test_to_gray_returns_two_dimensional_array(self, bgr_img):
+        # Arrange
+        source = bgr_img
+        # Act
+        gray = to_gray(source)
+        # Assert
         assert gray.ndim == 2
 
-    def test_to_gray_idempotent_on_grayscale(self):
+    def test_to_gray_is_identity_on_already_grayscale_input(self):
+        # Arrange
         g = np.zeros((10, 10), dtype=np.uint8)
+        # Act
         out = to_gray(g)
-        np.testing.assert_array_equal(out, g)
+        # Assert
+        assert np.array_equal(out, g)
 
 
 if __name__ == "__main__":
