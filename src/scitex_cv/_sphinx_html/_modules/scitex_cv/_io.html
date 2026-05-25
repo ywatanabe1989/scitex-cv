@@ -5,7 +5,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>scitex_cv._io &mdash; scitex-cv 0.1.4 documentation</title>
+  <title>scitex_cv._io &mdash; scitex-cv 0.1.5 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -13,7 +13,7 @@
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-      <script src="../../_static/documentation_options.js?v=fd825880"></script>
+      <script src="../../_static/documentation_options.js?v=59fadc99"></script>
       <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
       <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
       <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
@@ -45,9 +45,6 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../api.html">API</a></li>
-</ul>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../api/scitex_cv.html">scitex_cv</a></li>
 </ul>
 
         </div>
@@ -90,7 +87,7 @@
 
 
 <div class="viewcode-block" id="load">
-<a class="viewcode-back" href="../../api/scitex_cv.html#scitex_cv.load">[docs]</a>
+<a class="viewcode-back" href="../../api.html#scitex_cv.load">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span>
     <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
     <span class="n">color</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -127,7 +124,7 @@
 
 
 <div class="viewcode-block" id="save">
-<a class="viewcode-back" href="../../api/scitex_cv.html#scitex_cv.save">[docs]</a>
+<a class="viewcode-back" href="../../api.html#scitex_cv.save">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span>
     <span class="n">img</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
@@ -170,7 +167,7 @@
 
 
 <div class="viewcode-block" id="to_rgb">
-<a class="viewcode-back" href="../../api/scitex_cv.html#scitex_cv.to_rgb">[docs]</a>
+<a class="viewcode-back" href="../../api.html#scitex_cv.to_rgb">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">to_rgb</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert BGR image to RGB.</span>
 
@@ -193,7 +190,7 @@
 
 
 <div class="viewcode-block" id="to_bgr">
-<a class="viewcode-back" href="../../api/scitex_cv.html#scitex_cv.to_bgr">[docs]</a>
+<a class="viewcode-back" href="../../api.html#scitex_cv.to_bgr">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">to_bgr</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert RGB image to BGR.</span>
 
@@ -216,7 +213,7 @@
 
 
 <div class="viewcode-block" id="to_gray">
-<a class="viewcode-back" href="../../api/scitex_cv.html#scitex_cv.to_gray">[docs]</a>
+<a class="viewcode-back" href="../../api.html#scitex_cv.to_gray">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">to_gray</span><span class="p">(</span><span class="n">img</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Convert image to grayscale.</span>
 

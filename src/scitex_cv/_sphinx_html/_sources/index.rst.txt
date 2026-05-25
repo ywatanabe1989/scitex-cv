@@ -9,12 +9,3 @@ extracted from the SciTeX ecosystem as a standalone package.
    :caption: Contents:
 
    api
-
-API Reference
--------------
-
-.. autosummary::
-   :toctree: api
-   :recursive:
-
-   scitex_cv
