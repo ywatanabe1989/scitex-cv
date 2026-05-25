@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scitex-cv"
-version = "0.1.4"
+version = "0.1.5"
 description = "Small cv2/Pillow image-processing utilities (load/save, resize/rotate/crop, blur/sharpen/edge, drawing) — standalone module from the SciTeX ecosystem"
 readme = "README.md"
 license = "AGPL-3.0-only"
