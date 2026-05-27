@@ -1,9 +1,9 @@
 ---
 name: scitex-cv
 description: |
-  [WHAT] Computer vision helpers for SciTeX research scripts — image I/O, batched preprocessing, and lightweight model wrappers.
-  [WHEN] Loading and preparing image datasets for analysis or modeling.
-  [HOW] `from scitex_cv import ...` or `scitex-cv --help`.
+  [WHAT] Small cv2-based image utilities — I/O, transforms, filters, drawing.
+  [WHEN] Reading, manipulating, or annotating images in research scripts without memorising cv2's BGR-vs-RGB quirks.
+  [HOW] `from scitex_cv import load, save, resize, blur, ...` or `scitex-cv --help`.
 primary_interface: python
 interfaces:
   python: 2
