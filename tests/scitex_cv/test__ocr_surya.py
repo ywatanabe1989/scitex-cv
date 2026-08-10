@@ -17,6 +17,7 @@ import pytest
 
 from scitex_cv._ocr_surya import (
     SURYA_PAGE_HEIGHT,
+    SURYA_RENDER_LADDER,
     SuryaReading,
     is_layout_only,
     normalize_page,
@@ -74,9 +75,9 @@ class TestNormalizePage:
         # Assert
         assert normalized.shape[0] == SURYA_PAGE_HEIGHT
 
-    def test_page_already_at_the_working_height_is_returned_untouched(self, a4_page):
-        # Arrange
-        source = a4_page
+    def test_page_already_at_the_working_height_is_returned_untouched(self):
+        # Arrange — exactly at the ladder's first rung, so no resample is due.
+        source = np.full((SURYA_PAGE_HEIGHT, 1250, 3), 255, dtype=np.uint8)
         # Act
         normalized = normalize_page(source)
         # Assert
@@ -192,6 +193,45 @@ class TestSuryaReadingValidator:
         recovered = reading.text
         # Assert
         assert recovered is None
+
+
+class TestRenderLadder:
+    def test_ladder_starts_at_the_measured_winning_rung(self):
+        # Arrange — the only two renderings that recovered the soft scan were
+        # at height 1770, so the first rung must be there or the ladder pays
+        # for attempts before it can succeed.
+        first_height, _filter = SURYA_RENDER_LADDER[0]
+        # Act
+        starting_height = first_height
+        # Assert
+        assert starting_height == SURYA_PAGE_HEIGHT
+
+    def test_ladder_varies_the_filter_not_only_the_size(self):
+        # Arrange — filter demonstrably flips the outcome at a fixed size, so
+        # a ladder that only varied size would miss both measured winners.
+        filters = {filter_name for _h, filter_name in SURYA_RENDER_LADDER}
+        # Act
+        distinct = len(filters)
+        # Assert
+        assert distinct > 1
+
+    def test_every_ladder_filter_is_a_known_interpolation(self):
+        # Arrange
+        names = [filter_name for _h, filter_name in SURYA_RENDER_LADDER]
+        # Act
+        resolved = [normalize_page(np.full((40, 30, 3), 255, dtype=np.uint8), 20, n)
+                    for n in names]
+        # Assert — a typo'd rung would raise ValueError before any HTTP call.
+        assert len(resolved) == len(names)
+
+    def test_unknown_filter_is_rejected(self):
+        # Arrange
+        page = np.full((40, 30, 3), 255, dtype=np.uint8)
+        # Act
+        ctx = pytest.raises(ValueError, match="unknown interpolation")
+        # Assert
+        with ctx:
+            normalize_page(page, 20, "bicubic-ish")
 
 
 class TestDispatch:

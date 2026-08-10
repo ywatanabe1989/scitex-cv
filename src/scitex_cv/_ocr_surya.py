@@ -27,12 +27,33 @@ page                 sharp source    soft scan
 
 So the lower bound is universal, but the upper bound depends on how sharp the
 source is: at the *same* 3205 tokens a crisp page reads and a soft scan does
-not. Token count alone does not decide it. ``SURYA_PAGE_HEIGHT`` is therefore
-the one operating point that worked for **every** input tested — chosen for
-that reason, not because it is a demonstrated optimum.
+not.
 
-This makes :func:`normalize_page` a NORMALIZER, not an upscaler: it scales
-*down* as readily as up. Upscaling a soft scan 2x actively broke it.
+**Token count is NOT the control variable, and resolution alone is not a
+rule.** An earlier draft of this module claimed ``SURYA_PAGE_HEIGHT`` was an
+operating point that worked for every input. That claim was FALSIFIED by
+end-to-end measurement: five renderings of the same soft scan, all landing on
+exactly 2201 image tokens, split two-to-three between reading and not.
+
+=========================  ========  ========
+rendering (same page)      tokens    result
+=========================  ========  ========
+PIL LANCZOS 1242x1770      2201      text
+PIL LANCZOS 1232x1755      2201      layout
+cv2 LANCZOS4 1242x1770     2201      layout
+cv2 LANCZOS4 1232x1755     2201      layout
+cv2 CUBIC 1242x1770        2201      text
+=========================  ========  ========
+
+Neither the resampling filter nor the target size predicts the outcome on its
+own — they interact, and the model sits near a decision boundary between its
+OCR and layout modes for this page. Do not read :data:`SURYA_PAGE_HEIGHT` as a
+threshold that guarantees anything; it is a starting rendering, and
+:func:`normalize_page` is one way of producing a candidate, not a fix.
+
+What IS reliable is :func:`is_layout_only`: the failure is mechanically
+detectable from the response, which is what lets a caller respond to it
+instead of trusting a single rendering.
 
 **2. A page whose text was not recovered is still recoverable.**
 The soft scan that failed at its native 753x1073 read correctly once resampled
@@ -44,6 +65,25 @@ Consequently this module never reports *why* a page did not read: overshooting
 and undershooting produce the identical symptom, so any cause would be a guess.
 It reports what was observed and the size actually sent, and leaves inference
 to the caller.
+
+**The design that follows: retry, do not theorise.** Twelve renderings (four
+filters x three target heights) were measured against both pages:
+
+* crisp page — **12 of 12** produced text. Sharp input is robust, and no
+  preprocessing anxiety is warranted for it.
+* soft scan — **2 of 12** produced text.
+
+Two of twelve is a low hit rate, but it is not zero, and that is what matters:
+a page that fails ONE rendering is not an unreadable page. So
+:func:`ocr_surya` walks :data:`SURYA_RENDER_LADDER`, stops at the first
+rendering whose response is not layout-only, and reports which rung won and how
+many were tried. That exploits a measured redundancy instead of claiming to
+understand the boundary.
+
+The ladder's ORDER is empirical and its evidence is THIN — it is ordered by
+what won on ONE soft page, and should be re-derived when more soft pages
+exist. The *structure* (try several, stop at the first success, report failure
+only after exhausting them) does not depend on that ordering being optimal.
 """
 
 from __future__ import annotations
@@ -58,10 +98,31 @@ from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 
-#: Long-edge pixel height the page is normalized to before being sent. With an
-#: A4-shaped page this lands on ~2201 image tokens — the only operating point
-#: that produced text for every document measured. See the module docstring.
-SURYA_PAGE_HEIGHT = 1755
+#: Long-edge pixel height used for the FIRST rendering attempt. Not a
+#: threshold and not a guarantee — see the module docstring. It is simply
+#: where the ladder starts.
+SURYA_PAGE_HEIGHT = 1770
+
+#: Renderings tried in order until one produces text. Each entry is
+#: ``(long_edge_height, cv2_interpolation_name)``.
+#:
+#: ORDERED BY MEASUREMENT, on one soft page, with thin evidence: 2 of 12
+#: renderings recovered it, and both winners were at height 1770 (with the
+#: ``cubic`` and ``area`` filters), while every rendering at 1755 and at 1800
+#: failed. The crisp page read on all twelve, so the ladder costs it nothing —
+#: it stops at rung one.
+#:
+#: Re-derive this order when more soft pages are available. The ladder's VALUE
+#: is that a single rendering's failure is not the page's failure; the specific
+#: rungs are the replaceable part.
+SURYA_RENDER_LADDER = (
+    (1770, "cubic"),
+    (1770, "area"),
+    (1770, "lanczos4"),
+    (1755, "cubic"),
+    (1800, "cubic"),
+    (1740, "area"),
+)
 
 #: Default endpoint of a `llama-server` started with the Surya GGUF + mmproj.
 SURYA_DEFAULT_ENDPOINT = "http://127.0.0.1:18081/v1/chat/completions"
@@ -104,6 +165,8 @@ class SuryaReading:
     source_size: Tuple[int, int]
     sent_size: Tuple[int, int]
     image_tokens: Optional[int]
+    rendering: Optional[Tuple[int, str]] = None
+    attempts: int = 1
 
     def __post_init__(self) -> None:
         # Fail where the answer is built, not three layers downstream.
@@ -130,15 +193,38 @@ class SuryaReading:
         return self.status == _STATUS_TEXT
 
 
-def normalize_page(image: np.ndarray, height: int = SURYA_PAGE_HEIGHT) -> np.ndarray:
+def _interpolation(name: str) -> int:
+    import cv2
+
+    table = {
+        "cubic": cv2.INTER_CUBIC,
+        "area": cv2.INTER_AREA,
+        "lanczos4": cv2.INTER_LANCZOS4,
+        "linear": cv2.INTER_LINEAR,
+    }
+    try:
+        return table[name]
+    except KeyError:
+        raise ValueError(
+            f"unknown interpolation {name!r}; expected one of {sorted(table)}"
+        ) from None
+
+
+def normalize_page(
+    image: np.ndarray,
+    height: int = SURYA_PAGE_HEIGHT,
+    filter_name: str = "cubic",
+) -> np.ndarray:
     """Resample ``image`` so its long edge is ``height``, preserving aspect.
 
-    Scales DOWN as readily as up — the point is to hit the model's working
-    resolution, not to maximise pixels. Upscaling a soft scan past it was
-    measured to break recognition that worked at the normalized size.
+    Scales DOWN as readily as up — the point is to land on a rendering the
+    model reads, not to maximise pixels. Upscaling a soft scan too far was
+    measured to break recognition that worked at a smaller size.
 
-    Already-correct pages are returned untouched, so a caller may apply this
-    unconditionally.
+    ``filter_name`` matters and is not cosmetic: on the soft scan, ``cubic``
+    and ``area`` at height 1770 recovered the text while ``lanczos4`` and
+    ``linear`` at the same size did not. This is why :func:`ocr_surya` varies
+    it across the ladder rather than fixing one filter.
     """
     if image.ndim < 2:
         raise ValueError(
@@ -148,6 +234,7 @@ def normalize_page(image: np.ndarray, height: int = SURYA_PAGE_HEIGHT) -> np.nda
     if src_h <= 0 or src_w <= 0:
         raise ValueError(f"normalize_page got a degenerate image: {src_w}x{src_h}")
 
+    interp = _interpolation(filter_name)
     long_edge = max(src_h, src_w)
     if long_edge == height:
         return image
@@ -157,9 +244,6 @@ def normalize_page(image: np.ndarray, height: int = SURYA_PAGE_HEIGHT) -> np.nda
     scale = height / float(long_edge)
     dst_w = max(1, int(round(src_w * scale)))
     dst_h = max(1, int(round(src_h * scale)))
-    # INTER_AREA is the correct decimation filter; LANCZOS4 is what recovered
-    # the soft scan on the way up.
-    interp = cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LANCZOS4
     return cv2.resize(image, (dst_w, dst_h), interpolation=interp)
 
 
@@ -209,36 +293,14 @@ def _load_image(image: Union[str, Path, np.ndarray]) -> np.ndarray:
     )
 
 
-def ocr_surya(
-    image: Union[str, Path, np.ndarray],
-    endpoint: str = SURYA_DEFAULT_ENDPOINT,
-    prompt: str = SURYA_PROMPT,
-    max_tokens: int = 4096,
-    timeout: float = 300.0,
-    normalize: bool = True,
-) -> SuryaReading:
-    """Read ``image`` via a running Surya ``llama-server``.
-
-    Returns a :class:`SuryaReading` in every non-transport case, including
-    when the page did not read — the failure is data, not an exception,
-    because "this page produced no characters at this size" is a fact the
-    caller routinely needs to record rather than crash on.
-
-    Raises
-    ------
-    TypeError
-        If ``image`` is neither path-like nor a numpy array.
-    ConnectionError
-        If the endpoint could not be reached or answered malformed JSON. A
-        transport failure genuinely is exceptional: it says nothing about the
-        page, so returning a reading would misattribute it to the document.
-    """
-    source = _load_image(image)
-    src_h, src_w = source.shape[:2]
-
-    prepared = normalize_page(source) if normalize else source
-    sent_h, sent_w = prepared.shape[:2]
-
+def _ask(
+    prepared: np.ndarray,
+    endpoint: str,
+    prompt: str,
+    max_tokens: int,
+    timeout: float,
+) -> Tuple[str, Optional[int]]:
+    """POST one rendering and return ``(body, image_tokens)``."""
     payload = {
         "messages": [
             {
@@ -292,27 +354,91 @@ def ocr_surya(
     if isinstance(usage, dict):
         image_tokens = usage.get("prompt_tokens")
 
-    if not body or not body.strip():
-        status = _STATUS_EMPTY
-    elif is_layout_only(body):
-        status = _STATUS_LAYOUT_ONLY
-    else:
-        status = _STATUS_TEXT
+    return body, image_tokens
 
-    return SuryaReading(
-        status=status,
-        text=body if status == _STATUS_TEXT else None,
-        body=body,
-        source_size=(src_w, src_h),
-        sent_size=(sent_w, sent_h),
-        image_tokens=image_tokens,
-    )
+
+def _classify(body: str) -> str:
+    if not body or not body.strip():
+        return _STATUS_EMPTY
+    if is_layout_only(body):
+        return _STATUS_LAYOUT_ONLY
+    return _STATUS_TEXT
+
+
+def ocr_surya(
+    image: Union[str, Path, np.ndarray],
+    endpoint: str = SURYA_DEFAULT_ENDPOINT,
+    prompt: str = SURYA_PROMPT,
+    max_tokens: int = 4096,
+    timeout: float = 300.0,
+    ladder: Tuple[Tuple[int, str], ...] = SURYA_RENDER_LADDER,
+) -> SuryaReading:
+    """Read ``image`` via a running Surya ``llama-server``.
+
+    Walks ``ladder``, stopping at the first rendering whose response is not
+    layout-only. A single rendering's failure is NOT the page's failure — 2 of
+    12 renderings recovered a soft scan that failed at its native size — so
+    giving up after one attempt would discard readable pages. A crisp page
+    reads on the first rung and costs nothing extra (measured 12 of 12).
+
+    Pass ``ladder=((height, filter),)`` for a single attempt, or
+    ``ladder=()`` to send the source image untouched.
+
+    Returns a :class:`SuryaReading` in every non-transport case, including
+    when no rung read the page — the failure is data, not an exception,
+    because "this page produced no characters" is a fact the caller routinely
+    needs to record rather than crash on. ``rendering`` names the rung that
+    was used and ``attempts`` how many were tried.
+
+    Raises
+    ------
+    TypeError
+        If ``image`` is neither path-like nor a numpy array.
+    ValueError
+        If a ladder rung names an unknown interpolation filter.
+    ConnectionError
+        If the endpoint could not be reached or answered malformed JSON. A
+        transport failure genuinely is exceptional: it says nothing about the
+        page, so returning a reading would misattribute it to the document.
+    """
+    source = _load_image(image)
+    src_h, src_w = source.shape[:2]
+
+    rungs: Tuple[Optional[Tuple[int, str]], ...] = tuple(ladder) or (None,)
+
+    last: Optional[SuryaReading] = None
+    for attempt, rung in enumerate(rungs, start=1):
+        prepared = (
+            source if rung is None else normalize_page(source, rung[0], rung[1])
+        )
+        sent_h, sent_w = prepared.shape[:2]
+        body, image_tokens = _ask(prepared, endpoint, prompt, max_tokens, timeout)
+        status = _classify(body)
+        last = SuryaReading(
+            status=status,
+            text=body if status == _STATUS_TEXT else None,
+            body=body,
+            source_size=(src_w, src_h),
+            sent_size=(sent_w, sent_h),
+            image_tokens=image_tokens,
+            rendering=rung,
+            attempts=attempt,
+        )
+        if status == _STATUS_TEXT:
+            return last
+
+    # Every rung produced a non-text answer. Report the last one, which
+    # carries the full attempt count — the caller can see the page was not
+    # dismissed on a single rendering.
+    assert last is not None  # rungs is never empty
+    return last
 
 
 __all__ = [
     "SURYA_DEFAULT_ENDPOINT",
     "SURYA_PAGE_HEIGHT",
     "SURYA_PROMPT",
+    "SURYA_RENDER_LADDER",
     "SuryaReading",
     "is_layout_only",
     "normalize_page",
