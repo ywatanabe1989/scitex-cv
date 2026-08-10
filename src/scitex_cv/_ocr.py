@@ -8,8 +8,16 @@ array) to recognized text. The heavy engine (EasyOCR, which pulls in torch)
 is imported **lazily inside** :func:`ocr` so that ``import scitex_cv`` stays
 light and free of the optional dependency.
 
-PDF handling deliberately lives elsewhere (scitex-io owns PDF -> image);
-this module only ever sees images, keeping separation of concerns clean.
+This module only ever sees images. Documents (PDF in, per-page results out)
+live in :mod:`scitex_cv._document`.
+
+A previous version of this docstring said "PDF handling deliberately lives
+elsewhere (scitex-io owns PDF -> image)". That was FALSE and is recorded here
+rather than quietly deleted, because it cost real time: verified 2026-08-10
+by reading scitex-io's source, it carries PDF *metadata* only (XMP embed/read
+under ``_metadata_modules/``) plus ``.pdf`` in its savable-figure extension
+set. It has no rasterization at all. The claim deferred to an owner that does
+not exist, and reading it is enough to stop someone doing the work.
 """
 
 from __future__ import annotations
