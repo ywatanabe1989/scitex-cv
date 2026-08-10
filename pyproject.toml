@@ -50,7 +50,15 @@ docs = [
     "sphinx-autodoc-typehints>=1.25",
 ]
 all = [
-    "scitex-cv[dev,docs]",
+    # Closure by inclusion (PS-221 §3): every PUBLIC extra must be a subset of
+    # `all`, so `pip install scitex-cv[all]` really does pull everything
+    # public. `ocr` was absent here since it was introduced, which silently
+    # under-installed EasyOCR for anyone who ran the documented
+    # give-me-everything install and then hit `scitex_cv.ocr`.
+    # Note this makes `[all]` heavy: easyocr pulls torch. The alternative —
+    # keeping ocr out — means `[all]` does not mean all, which is the worse
+    # surprise. The Surya engine needs no extra at all (it is an HTTP call).
+    "scitex-cv[dev,docs,ocr]",
 ]
 
 [project.urls]

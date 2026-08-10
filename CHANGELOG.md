@@ -17,6 +17,7 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- **`pip install scitex-cv[all]` now actually installs everything public.** The `ocr` extra was missing from `all` (PS-221 §3), so the documented give-me-everything install silently omitted EasyOCR and `scitex_cv.ocr` then raised `ImportError` — a pre-existing gap since the extra was introduced, surfaced by CI on this branch. `all` now references `scitex-cv[dev,docs,ocr]`. This makes `[all]` heavier, since easyocr pulls torch; an `[all]` that does not mean all is the worse surprise. The new Surya engine needs no extra at all — it is an HTTP call.
 - **`ocr()` no longer selects a GPU that cannot run the model.** `easyocr.Reader` defaults to `gpu=True` and trusts `torch.cuda.is_available()`, which returns **True** on a GTX 1070 even though this torch build has no `sm_61` kernels — the driver and runtime are fine, only the kernels are missing. `ocr()` now takes `gpu: Optional[bool]`, defaulting to the capability probe above; pass `True`/`False` to override. The reader cache is keyed on `gpu` as well as the language tuple, so an override cannot return the other device's reader.
 
 ## [0.2.0] — 2026-06-27
