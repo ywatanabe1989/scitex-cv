@@ -9,6 +9,8 @@ Provides reusable cv2-based utilities for image processing:
 - Filters: blur, sharpen, edge detection, threshold, denoise
 - Draw: rectangle, circle, line, text, polylines, arrow
 - OCR: ocr (image -> text via EasyOCR; optional `ocr` extra)
+- OCR: ocr_surya (image -> structured layout+text via a Surya-2 llama-server;
+  no torch, so it runs on GPUs current torch wheels ship no kernels for)
 
 Example
 -------
@@ -64,6 +66,11 @@ _SUBMODULE_BY_NAME = {
     "resize": "._transform",
     "rotate": "._transform",
     "ocr": "._ocr",
+    "torch_build_has_kernels_for_local_gpu": "._ocr",
+    "SuryaReading": "._ocr_surya",
+    "is_layout_only": "._ocr_surya",
+    "normalize_page": "._ocr_surya",
+    "ocr_surya": "._ocr_surya",
 }
 
 
@@ -108,6 +115,12 @@ __all__ = [
     "arrow",
     # OCR
     "ocr",
+    "torch_build_has_kernels_for_local_gpu",
+    # OCR — Surya-2 engine (llama-server; no torch)
+    "ocr_surya",
+    "SuryaReading",
+    "normalize_page",
+    "is_layout_only",
 ]
 
 # EOF
