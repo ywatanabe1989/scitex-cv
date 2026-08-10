@@ -7,6 +7,8 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-08-10
+
 ### Added
 
 - **`ocr_surya()` — a second OCR engine, served by llama.cpp's `llama-server`.** Reads a page through the Surya-2 GGUF plus its multimodal projector over HTTP, so it pulls in **no torch**. That is the point: current torch wheels ship no kernels for Pascal cards (a GTX 1070 is `sm_61`; torch 2.13.0+cu130 covers `sm_75`+), while llama.cpp built with `CMAKE_CUDA_ARCHITECTURES=61` runs on the same card. Returns structured layout — text with per-block bounding boxes and semantic labels — rather than a flat string.
