@@ -184,7 +184,6 @@ def concatenate_videos(
             # Use filter_complex for transitions
             # Build input list and filter
             inputs = []
-            filter_parts = []
 
             for i, vp in enumerate(video_paths):
                 inputs.extend(["-i", str(vp)])

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scitex-cv"
-version = "0.1.5"
+version = "0.4.0"
 description = "Small cv2/Pillow image-processing utilities (load/save, resize/rotate/crop, blur/sharpen/edge, drawing) — standalone module from the SciTeX ecosystem"
 readme = "README.md"
 license = "AGPL-3.0-only"
@@ -20,11 +20,25 @@ classifiers = [
 ]
 dependencies = [
     "numpy",
-    "opencv-python",
+    # Headless OpenCV: its manylinux wheel bundles all native libs and pulls
+    # in NO X11/OpenGL/GLib system libraries (verified via ldd + runtime
+    # loaded-libs over scitex-cv's cv2 ops), so the package imports on a
+    # minimal/headless base with no apt installs. scitex-cv uses no GUI cv2
+    # (imshow etc.); install `opencv-python` yourself if you need it.
+    "opencv-python-headless",
     "Pillow",
 ]
 
 [project.optional-dependencies]
+ocr = [
+    "easyocr",  # image -> text engine for scitex_cv.ocr (pulls torch; heavy)
+]
+pdf = [
+    # Document input for scitex_cv.read_document: rasterizes a page at a given
+    # height and reads an existing text layer. Kept out of the base deps
+    # because the image primitives never need it.
+    "pymupdf",
+]
 dev = [
     "pytest",
     "pytest-cov",
@@ -42,7 +56,15 @@ docs = [
     "sphinx-autodoc-typehints>=1.25",
 ]
 all = [
-    "scitex-cv[dev,docs]",
+    # Closure by inclusion (PS-221 §3): every PUBLIC extra must be a subset of
+    # `all`, so `pip install scitex-cv[all]` really does pull everything
+    # public. `ocr` was absent here since it was introduced, which silently
+    # under-installed EasyOCR for anyone who ran the documented
+    # give-me-everything install and then hit `scitex_cv.ocr`.
+    # Note this makes `[all]` heavy: easyocr pulls torch. The alternative —
+    # keeping ocr out — means `[all]` does not mean all, which is the worse
+    # surprise. The Surya engine needs no extra at all (it is an HTTP call).
+    "scitex-cv[dev,docs,ocr,pdf]",
 ]
 
 [project.urls]
@@ -58,6 +80,9 @@ scitex_cv = ["_skills/**/*.md"]
 
 [project.entry-points."scitex_dev.skills"]
 scitex-cv = "scitex_cv"
+
+[project.entry-points."scitex_dev.system_deps"]
+scitex-cv = "scitex_cv._system_deps:provide"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

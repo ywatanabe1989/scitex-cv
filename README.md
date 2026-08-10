@@ -39,11 +39,12 @@ scitex_cv/
 ├── _io.py             ← image I/O wrappers (PIL / OpenCV backends)
 ├── _transform.py      ← geometric transforms (resize, crop, rotate)
 ├── _filters.py        ← blur, sharpen, edge-detect filters
-└── _draw.py           ← annotation helpers (draw boxes, text, masks)
+├── _draw.py           ← annotation helpers (draw boxes, text, masks)
+└── _ocr.py            ← image → text (EasyOCR; optional `ocr` extra)
 ```
 
 Thin, opinionated wrapper around PIL + OpenCV — every public name in
-`__init__.py` re-exports from one of the four leaf modules above.
+`__init__.py` re-exports from one of the five leaf modules above.
 
 ## Quick Start
 
@@ -91,6 +92,11 @@ cv.line(img, (0, 0), (100, 100))
 cv.arrow(img, (0, 0), (50, 50))
 cv.text(img, "label", (10, 30))
 cv.polylines(img, points=np.array([[0, 0], [100, 0], [100, 100]]))
+
+# OCR (image → text; requires the optional `ocr` extra: pip install 'scitex-cv[ocr]')
+cv.ocr("scan.png")                       # → recognized text (str)
+cv.ocr(img, languages=("en",))           # in-memory array, English only
+cv.ocr(img, detail=True)                 # → [(bbox, text, confidence), ...]
 ```
 
 </details>
