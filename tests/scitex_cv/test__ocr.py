@@ -11,11 +11,20 @@ import importlib.util
 import numpy as np
 import pytest
 
-from scitex_cv._ocr import _get_reader, ocr
+from scitex_cv._ocr import (
+    _get_reader,
+    ocr,
+    torch_build_has_kernels_for_local_gpu,
+)
 
 _EASYOCR = importlib.util.find_spec("easyocr") is not None
 _needs_no_easyocr = pytest.mark.skipif(
     _EASYOCR, reason="easyocr installed — cannot exercise the missing-dep path"
+)
+
+_TORCH = importlib.util.find_spec("torch") is not None
+_needs_no_torch = pytest.mark.skipif(
+    _TORCH, reason="torch installed — cannot exercise the absent-torch path"
 )
 
 
@@ -86,10 +95,39 @@ class TestReaderCache:
         pytest.importorskip("easyocr")
         langs = ("en",)
         # Act
-        first = _get_reader(langs)
-        second = _get_reader(langs)
+        first = _get_reader(langs, False)
+        second = _get_reader(langs, False)
         # Assert
         assert first is second
+
+    def test_cpu_and_gpu_readers_are_cached_separately(self):
+        # Arrange
+        pytest.importorskip("easyocr")
+        langs = ("en",)
+        # Act
+        cpu_reader = _get_reader(langs, False)
+        # Assert — the cache key must include gpu, or a caller overriding the
+        # probe would silently receive the other device's reader.
+        assert _get_reader(langs, False) is cpu_reader
+
+
+class TestGpuProbe:
+    def test_probe_returns_a_bool_without_requiring_torch(self):
+        # Arrange
+        probe = torch_build_has_kernels_for_local_gpu
+        # Act
+        answer = probe()
+        # Assert
+        assert isinstance(answer, bool)
+
+    @_needs_no_torch
+    def test_probe_is_false_when_torch_is_absent(self):
+        # Arrange
+        probe = torch_build_has_kernels_for_local_gpu
+        # Act
+        answer = probe()
+        # Assert
+        assert answer is False
 
 
 class TestRealOcr:
