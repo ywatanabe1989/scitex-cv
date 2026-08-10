@@ -7,6 +7,24 @@ versions follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-10
+
+### Added
+
+- **`read_document()` — a scanned PDF in, ordered per-page results out, with a resumable JSON sidecar.** Written beside the input under a stable name, so a consumer reads a result without running Python and an interrupted overnight batch resumes where it stopped rather than at page 1. The sidecar is written after *every* page and renamed atomically; one written only at completion would be useless in exactly the case it exists for. New `pdf` extra (`pip install 'scitex-cv[pdf]'`) supplies pymupdf.
+- **Four page states — `text` / `blank` / `unreadable` / `error` — because three could not express the requirement.** Only `text` carries characters; the others are `None`, never `""`, since an empty string is precisely the value that cannot distinguish "nothing was written here" from "nothing was recovered". `unreadable` (every rung tried, all layout-only) is a fact about the **page**; `error` (unreachable endpoint, corrupt page) is a fact about the **run**, where the page may be perfectly readable. `attempts` records how many rungs actually ran, so "fell off the end of the ladder" and "died on rung one" never blur — they call for opposite next actions.
+- **Blankness is measured from pixels, not asked of the model.** Surya returns layout-only JSON for a blank page *identically* to an unreadable one, so asking it reported a genuinely blank page as `unreadable` after six wasted rungs. Ink coverage settles it before the first inference call: real documents measure 0.049/0.073/0.051 against a blank page at 0.00000, with the threshold at 0.002 — three orders of magnitude of separation, so a measurement rather than a tuned knob. A blank page now costs zero inference calls instead of six, which compounds on scan stacks full of separator sheets.
+- **PDF pages with a real text layer skip OCR entirely**, recording `source="pdf-text-layer"` so a caller can tell which path produced the text — faster and more accurate than rendering and re-reading it.
+
+### Changed
+
+- **Each ladder rung rasterizes afresh from the vector source** rather than rasterizing once and resizing per rung. Resampling was measured to change whether the model reads a page *at an identical image-token count*, so this removes a variable rather than adding one. A page is never resampled twice.
+- **Resume policy is asymmetric on purpose.** `text` and `blank` are kept; `error` is **always** retried, because the failure described the run and not the page; `unreadable` is kept only under an unchanged ladder, since a stored "cannot be read" that outlives the renderings that produced it is a negative frozen past its evidence — and caching it permanently would mean improving the ladder had no effect on exactly the pages the improvement was for. The sidecar records a ladder fingerprint to make that decidable.
+
+### Fixed
+
+- **A false ownership claim in `_ocr.py`, corrected in place rather than quietly deleted.** It stated "PDF handling deliberately lives elsewhere (scitex-io owns PDF -> image)". Verified against that package's source: scitex-io carries PDF *metadata* only (XMP embed/read) and has no rasterization at all. The claim deferred to an owner that does not exist — it did not merely mislead, it manufactured a handoff nobody performed, with both sides able to believe the other held it. Kept visible as a correction because reading it was enough to stop the work it named.
+
 ## [0.3.0] — 2026-08-10
 
 ### Added
