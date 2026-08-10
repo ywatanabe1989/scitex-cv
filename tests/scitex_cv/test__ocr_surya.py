@@ -136,6 +136,97 @@ class TestIsLayoutOnly:
         # Assert
         assert detected is False
 
+    def test_accepts_the_reading_that_ocr_surya_returns(self, layout_only_body):
+        # The two-line usage a new caller writes first. This raised
+        # AttributeError: 'SuryaReading' object has no attribute 'strip'.
+        # Arrange
+        reading = SuryaReading(
+            status="layout-only",
+            text=None,
+            body=layout_only_body,
+            rendering=(1770, "cubic"),
+            image_tokens=2201,
+            source_size=(1241, 1755),
+            sent_size=(1251, 1770),
+        )
+        # Act
+        detected = is_layout_only(reading)
+        # Assert
+        assert detected is True
+
+    def test_text_reading_is_not_layout_only(self):
+        # Arrange
+        reading = SuryaReading(
+            status="text",
+            text="登記の申請をします",
+            body='<div data-bbox="106 625 431 644"><p>登記の申請をします</p></div>',
+            rendering=(1770, "cubic"),
+            image_tokens=2201,
+            source_size=(1241, 1755),
+            sent_size=(1251, 1770),
+        )
+        # Act
+        detected = is_layout_only(reading)
+        # Assert
+        assert detected is False
+
+    def test_reading_reports_its_own_status_rather_than_reparsing_the_body(
+        self, layout_only_body
+    ):
+        # One fact, one authority. A reading whose status says "text" must not
+        # be overruled by re-parsing its body, or the predicate would contradict
+        # the very object it was handed. Constructed deliberately inconsistent,
+        # which is the only way to observe which source is consulted.
+        # Arrange
+        reading = SuryaReading(
+            status="text",
+            text="whatever the reading concluded",
+            body=layout_only_body,
+            rendering=(1770, "cubic"),
+            image_tokens=2201,
+            source_size=(1241, 1755),
+            sent_size=(1251, 1770),
+        )
+        # Act
+        detected = is_layout_only(reading)
+        # Assert
+        assert detected is False
+
+    def test_wrong_type_raises_type_error(self):
+        # The old failure surfaced as AttributeError about `.strip`, which names
+        # neither the argument nor the expectation.
+        # Arrange
+        not_a_response = 12345
+        # Act
+        act = lambda: is_layout_only(not_a_response)
+        # Assert
+        with pytest.raises(TypeError):
+            act()
+
+    @pytest.fixture
+    def wrong_type_message(self):
+        try:
+            is_layout_only(12345)
+        except TypeError as exc:
+            return str(exc)
+        raise AssertionError("is_layout_only() accepted an int without raising")
+
+    def test_type_error_names_the_accepted_reading_type(self, wrong_type_message):
+        # Arrange
+        message = wrong_type_message
+        # Act
+        names_reading = "SuryaReading" in message
+        # Assert
+        assert names_reading is True
+
+    def test_type_error_names_the_type_actually_passed(self, wrong_type_message):
+        # Arrange
+        message = wrong_type_message
+        # Act
+        names_passed_type = "int" in message
+        # Assert
+        assert names_passed_type is True
+
 
 class TestSuryaReadingValidator:
     def test_unknown_status_is_rejected_where_it_is_built(self):

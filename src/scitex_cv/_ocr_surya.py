@@ -247,7 +247,7 @@ def normalize_page(
     return cv2.resize(image, (dst_w, dst_h), interpolation=interp)
 
 
-def is_layout_only(body: str) -> bool:
+def is_layout_only(response: Union[str, "SuryaReading"]) -> bool:
     """True when the model returned block geometry instead of characters.
 
     Mechanically decidable, which is the whole reason this failure is worth
@@ -255,8 +255,30 @@ def is_layout_only(body: str) -> bool:
     carrying no text, and it arrives with ``finish_reason="stop"`` and a
     plausible byte count. It reads as success to anything that only checks that
     the request completed.
+
+    Accepts either a raw response body or the :class:`SuryaReading` that
+    :func:`ocr_surya` returns, because those two are what a caller actually has
+    in hand. Passing the reading used to raise ``AttributeError: 'SuryaReading'
+    object has no attribute 'strip'`` from inside this function -- an error that
+    names neither the argument nor the expectation, so it reads as an internal
+    bug rather than a wrong argument, and it fires on the first two lines a new
+    caller writes.
+
+    Given a ``SuryaReading`` this reports ``status``, it does NOT re-derive the
+    verdict from ``body``. The reading already decided, and one fact gets one
+    authority: re-parsing could disagree with the ``status`` the same object
+    carries, and a predicate that contradicts its own input is worse than one
+    that refuses it.
     """
-    stripped = body.strip()
+    if isinstance(response, SuryaReading):
+        return response.status == _STATUS_LAYOUT_ONLY
+    if not isinstance(response, str):
+        raise TypeError(
+            "is_layout_only() accepts a response body (str) or a SuryaReading, "
+            f"not {type(response).__name__}. If you have the result of "
+            "ocr_surya(), pass it directly."
+        )
+    stripped = response.strip()
     if not stripped.startswith("["):
         return False
     try:
