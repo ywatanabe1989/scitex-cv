@@ -33,6 +33,12 @@ dependencies = [
 ocr = [
     "easyocr",  # image -> text engine for scitex_cv.ocr (pulls torch; heavy)
 ]
+pdf = [
+    # Document input for scitex_cv.read_document: rasterizes a page at a given
+    # height and reads an existing text layer. Kept out of the base deps
+    # because the image primitives never need it.
+    "pymupdf",
+]
 dev = [
     "pytest",
     "pytest-cov",
@@ -58,7 +64,7 @@ all = [
     # Note this makes `[all]` heavy: easyocr pulls torch. The alternative —
     # keeping ocr out — means `[all]` does not mean all, which is the worse
     # surprise. The Surya engine needs no extra at all (it is an HTTP call).
-    "scitex-cv[dev,docs,ocr]",
+    "scitex-cv[dev,docs,ocr,pdf]",
 ]
 
 [project.urls]

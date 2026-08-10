@@ -71,6 +71,10 @@ _SUBMODULE_BY_NAME = {
     "is_layout_only": "._ocr_surya",
     "normalize_page": "._ocr_surya",
     "ocr_surya": "._ocr_surya",
+    "DocumentReading": "._document",
+    "PageReading": "._document",
+    "read_document": "._document",
+    "sidecar_path_for": "._document",
 }
 
 
@@ -121,6 +125,11 @@ __all__ = [
     "SuryaReading",
     "normalize_page",
     "is_layout_only",
+    # Documents — PDF in, ordered per-page results out, resumable
+    "read_document",
+    "DocumentReading",
+    "PageReading",
+    "sidecar_path_for",
 ]
 
 # EOF
